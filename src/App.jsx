@@ -36,6 +36,7 @@ export default function App() {
     setFormData((data) => ({ ...data, [name]: value }));
   };
 
+  
   const handleSubmit = (e) => {
     e.preventDefault();
     if (editingIndex !== null) {
