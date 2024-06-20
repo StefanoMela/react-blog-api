@@ -4,24 +4,46 @@ const apiUrl = import.meta.env.VITE_BASE_API_URL;
 import "/src/app.css";
 
 export default function App() {
-  const tagList = ["html", "css", "javascript", "react", "php", "vue"];
-
   const defaultFormData = {
     title: "",
     content: "",
     image: "",
-    category: "",
+    categoryId: "",
     tags: [],
+    published: false,
+    userId: 1,
   };
 
   const [formData, setFormData] = useState(defaultFormData);
   const [posts, setPosts] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
 
+  const [tags, setTags] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await axios.get(`${apiUrl}/categories`);
+      console.log(data);
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const { data } = await axios.get(`${apiUrl}/tags`);
+      setTags(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
   const fetchPosts = async () => {
     try {
       const { data } = await axios.get(`${apiUrl}/posts`);
-      console.log("Fetched posts:", data.data);
+      //  console.log("Fetched posts:", data.data);
       setPosts(data.data);
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -29,6 +51,8 @@ export default function App() {
   };
 
   useEffect(() => {
+    fetchCategories();
+    fetchTags();
     fetchPosts();
   }, []);
 
@@ -36,13 +60,16 @@ export default function App() {
     setFormData((data) => ({ ...data, [name]: value }));
   };
 
-  
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingIndex !== null) {
       updatePost(editingIndex, formData);
     } else {
-      setPosts((data) => [...data, formData]);
+      const res = await axios.post(`${apiUrl}/posts`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
     }
     setFormData(defaultFormData);
     setEditingIndex(null);
@@ -107,34 +134,38 @@ export default function App() {
             <select
               name="category"
               id="category"
-              value={formData.category}
-              onChange={(e) => handleField("category", e.target.value)}
+              value={formData.categoryId}
+              onChange={(e) => handleField("categoryId", e.target.value)}
             >
-              <option value="news">News</option>
-              <option value="sport">Sport</option>
-              <option value="entertainment">Entertainment</option>
+              {categories?.length &&
+                categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
             </select>
           </div>
           <div className="form-element tags">
             <label htmlFor="tags">Tags</label>
-            {tagList.map((tag, index) => (
-              <div key={index}>
-                <input
-                  type="checkbox"
-                  id={`tag-${index}`}
-                  name="tags"
-                  value={tag}
-                  checked={formData.tags.includes(tag)}
-                  onChange={(e) => {
-                    const newTags = formData.tags.includes(tag)
-                      ? formData.tags.filter((t) => t !== tag)
-                      : [...formData.tags, tag];
-                    handleField("tags", newTags);
-                  }}
-                />
-                <label htmlFor={`tag-${index}`}>{tag}</label>
-              </div>
-            ))}
+            {tags?.length &&
+              tags?.map((tag, index) => (
+                <div key={index}>
+                  <input
+                    type="checkbox"
+                    id={`tag-${index}`}
+                    name="tags"
+                    value={tag.id}
+                    checked={formData.tags.includes(tag.id)}
+                    onChange={(e) => {
+                      const newTags = formData.tags.includes(tag.id)
+                        ? formData.tags.filter((t) => t !== tag.id)
+                        : [...formData.tags, tag.id];
+                      handleField("tags", newTags);
+                    }}
+                  />
+                  <label htmlFor={`tag-${index}`}>{tag.name}</label>
+                </div>
+              ))}
           </div>
           <button type="submit">
             {editingIndex !== null ? "Update" : "Submit"}
