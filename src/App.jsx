@@ -21,10 +21,12 @@ export default function App() {
   const [tags, setTags] = useState([]);
   const [categories, setCategories] = useState([]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const fetchCategories = async () => {
     try {
       const { data } = await axios.get(`${apiUrl}/categories`);
-      console.log(data);
       setCategories(data);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -40,11 +42,13 @@ export default function App() {
     }
   };
 
-  const fetchPosts = async () => {
+  const fetchPosts = async ()=> {
     try {
       const { data } = await axios.get(`${apiUrl}/posts`);
-      //  console.log("Fetched posts:", data.data);
+      console.log("Fetched posts:", data);
       setPosts(data.data);
+      setCurrentPage(data.page);
+      setTotalPages(data.totalPages);
     } catch (error) {
       console.error("Error fetching posts:", error);
     }
@@ -73,23 +77,45 @@ export default function App() {
     }
     setFormData(defaultFormData);
     setEditingIndex(null);
+    fetchPosts(currentPage);
   };
 
-  const removePost = (indexToRemove) => {
-    setPosts((postsArray) => postsArray.filter((_, i) => i !== indexToRemove));
+
+  const removePost = async (id) => {
+    try {
+      await axios.delete(`${apiUrl}/posts/${id}`);
+      setPosts((postsArray) => {
+        return postsArray.filter((post) => post.id !== id);
+
+      });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
   };
 
-  const updatePost = (indexToUpdate, updatedPost) => {
-    setPosts((postsArray) => {
-      const newPostsArray = [...postsArray];
-      newPostsArray[indexToUpdate] = updatedPost;
-      return newPostsArray;
-    });
-  };
+  // const updatePost = (indexToUpdate, updatedPost) => {
+  //   setPosts((postsArray) => {
+  //     const newPostsArray = [...postsArray];
+  //     newPostsArray[indexToUpdate] = updatedPost;
+  //     return newPostsArray;
+  //   });
+  // };
 
   const startEditing = (index) => {
     setFormData(posts[index]);
     setEditingIndex(index);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      fetchPosts(currentPage + parseInt(1));
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      fetchPosts(currentPage - 1);
+    }
   };
 
   return (
@@ -194,20 +220,29 @@ export default function App() {
                     <span>Categoria:</span>
                     <p>{post.category.name}</p>
                     <button
-                      onClick={() => startEditing(index)}
+                      onClick={() => startEditing(post.id)}
                       className="edit-button"
                     >
-                      Edit
+                      Edita
                     </button>
                     <button
-                      onClick={() => removePost(index)}
+                      onClick={() => removePost(post.id)}
                       className="delete-button"
                     >
-                      Delete
+                      Cancella
                     </button>
                   </article>
                 ))}
               </section>
+              <div className="pagination">
+                <button onClick={() => goToPreviousPage(currentPage => currentPage - 1)} disabled={currentPage === 1}>
+                  Precedente
+                </button>
+                <span>Pagina {currentPage} di {totalPages}</span>
+                <button onClick={() => goToNextPage(currentPage => currentPage + 1)} disabled={currentPage === totalPages}>
+                  Prossima
+                </button>
+              </div>
             </>
           )}
         </div>
